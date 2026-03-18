@@ -103,3 +103,4 @@ nuxt.config.ts        # Nuxt configuration
 > [!NOTE]
 > For questions or feedback, please open an issue or discussion in this repository.
 build test
+artifact test mer. 18 mars 2026 17:54:46 CET
