@@ -1,4 +1,8 @@
 {
-  "framework": "nuxtjs",
-  "outputDirectory": ".output"
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/nuxt"
+    }
+  ]
 }
