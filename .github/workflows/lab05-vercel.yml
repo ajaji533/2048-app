@@ -30,7 +30,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Vercel output
-        run: pnpm dlx vercel@latest build --token="$VERCEL_TOKEN"
+        run: pnpm dlx vercel@latest build --output .vercel/output --local-config vercel.json --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
