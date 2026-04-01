@@ -2,11 +2,9 @@ name: Lab05 Vercel CD
 
 on:
   push:
-    branches:
-      - lab05
+    branches: [lab5]
   pull_request:
-    branches:
-      - lab05
+    branches: [lab5]
   workflow_dispatch:
 
 env:
@@ -15,87 +13,110 @@ env:
 
 jobs:
   build:
+    # build + artifact sur push (comme demandé)
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+
+      # (optionnel) sanity check SSR output
       - run: |
-          if [ ! -d .output ]; then
-            pnpm generate
-          fi
+          test -f .output/server/index.mjs
+          node --check .output/server/index.mjs
+
       - uses: actions/upload-artifact@v4
         with:
           name: 2048-app-build
-          path: |
-            .output/**
-            dist/**
+          path: .output/**
           retention-days: 1
-          if-no-files-found: warn
+          if-no-files-found: error
 
   preview_deploy:
+    # déploiement preview uniquement sur PR vers lab5
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
-      - run: pnpm add -g vercel@latest
-      - run: vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+
+      # Vercel via pnpm dlx (pas d'install global)
+      - name: Vercel pull (preview)
+        run: pnpm dlx vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - run: vercel build --token=$VERCEL_TOKEN
+
+      - name: Vercel build (preview)
+        run: pnpm dlx vercel@latest build --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - run: vercel deploy --prebuilt --token=$VERCEL_TOKEN
+
+      - name: Vercel deploy (preview)
+        run: pnpm dlx vercel@latest deploy --prebuilt --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   production_deploy:
+    # déploiement prod uniquement en manuel (validation humaine)
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
-      - run: pnpm add -g vercel@latest
-      - run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      - name: Vercel pull (production)
+        run: pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - run: vercel build --prod --token=$VERCEL_TOKEN
+
+      - name: Vercel build (production)
+        run: pnpm dlx vercel@latest build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+
+      - name: Vercel deploy (production)
+        run: pnpm dlx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
